@@ -1,258 +1,177 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
-  StatusBar,
-  StyleSheet,
   View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
   Alert,
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import OnboardingScreen from './src/screens/OnboardingScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import CardSessionScreen from './src/screens/CardSessionScreen';
+import ValueArchiveScreen from './src/screens/ValueArchiveScreen';
 
-// Providers
-import { AppProvider, useApp } from './src/context/AppContext';
-
-// Services
-import { AuthService } from './src/services/auth';
-import { NotificationService } from './src/services/notifications';
-
-// Screens
-import { LoginScreen } from './src/screens/auth/LoginScreen';
-import { CategorySelectionScreen } from './src/screens/onboarding/CategorySelectionScreen';
-import { PatternDiagnosisScreen } from './src/screens/onboarding/PatternDiagnosisScreen';
-import { DiagnosisResultScreen } from './src/screens/onboarding/DiagnosisResultScreen';
-import { DashboardScreen } from './src/screens/main/DashboardScreen';
-import { DailyInterventionScreen } from './src/screens/main/DailyInterventionScreen';
-import { SettingsScreen } from './src/screens/settings/SettingsScreen';
-import { FeedbackScreen } from './src/screens/settings/FeedbackScreen';
-
-// Types
-import { CategoryType, UserTypeEnum } from './src/types';
-
-// Styles
-import { colors } from './src/styles/colors';
-
-const Stack = createStackNavigator();
-
-// 앱의 주요 플로우를 관리하는 내부 컴포넌트
-const AppNavigator: React.FC = () => {
-  const { state, login, logout, completeOnboarding } = useApp();
-  const [currentScreen, setCurrentScreen] = useState<string>('loading');
-  const [onboardingData, setOnboardingData] = useState<{
-    category?: CategoryType;
-    userType?: { primary: UserTypeEnum; secondary?: UserTypeEnum };
-  }>({});
-  const [interventionQuestId, setInterventionQuestId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // 앱 상태에 따라 현재 화면 결정
-    if (state.loading) {
-      setCurrentScreen('loading');
-    } else if (!state.isAuthenticated) {
-      setCurrentScreen('login');
-    } else if (!state.isOnboarded) {
-      setCurrentScreen('onboarding');
-    } else {
-      setCurrentScreen('main');
-    }
-  }, [state.loading, state.isAuthenticated, state.isOnboarded]);
-
-  const handleLoginSuccess = () => {
-    // 로그인 성공 후 상태는 useApp에서 자동으로 관리됨
-  };
-
-  const handleCategorySelect = (category: CategoryType) => {
-    setOnboardingData({ ...onboardingData, category });
-    setCurrentScreen('diagnosis');
-  };
-
-  const handleDiagnosisComplete = (userType: { primary: UserTypeEnum; secondary?: UserTypeEnum }) => {
-    setOnboardingData({ ...onboardingData, userType });
-    setCurrentScreen('result');
-  };
-
-  const handleStartJourney = () => {
-    if (onboardingData.userType) {
-      completeOnboarding(onboardingData.userType);
-      
-      // 알림 설정
-      NotificationService.scheduleDailyReminders();
-      NotificationService.scheduleSmartInterventions(onboardingData.userType.primary);
-      
-      // 온보딩 완료 후 메인 화면으로 자동 이동 (useEffect에서 처리)
-    }
-  };
-
-  const handleStartIntervention = (questId: string) => {
-    setInterventionQuestId(questId);
-    setCurrentScreen('intervention');
-  };
-
-  const handleInterventionComplete = () => {
-    // 성취 알림 표시
-    NotificationService.showAchievementNotification(
-      '패턴 개입 완료! 🎉',
-      '3초의 멈춤이 새로운 선택을 만들었습니다.'
-    );
-    
-    // 다음 개입 알림 스케줄 (30분-2시간 후)
-    const nextInterventionMinutes = 30 + Math.random() * 90;
-    NotificationService.scheduleInterventionNotification(
-      '패턴 체크',
-      '다시 한번 확인해볼까요?',
-      nextInterventionMinutes
-    );
-    
-    setInterventionQuestId(null);
-    setCurrentScreen('main');
-  };
-
-  const handleInterventionSkip = () => {
-    setInterventionQuestId(null);
-    setCurrentScreen('main');
-  };
-
-  const handleOpenSettings = () => {
-    setCurrentScreen('settings');
-  };
-
-  const handleCloseSettings = () => {
-    setCurrentScreen('main');
-  };
-
-  const handleOpenFeedback = () => {
-    setCurrentScreen('feedback');
-  };
-
-  const handleCloseFeedback = () => {
-    setCurrentScreen('settings');
-  };
-
-  const handleLogout = () => {
-    logout();
-    setCurrentScreen('login');
-    setOnboardingData({});
-  };
-
-  // 로딩 화면
-  if (currentScreen === 'loading') {
-    return (
-      <View style={styles.loadingContainer}>
-        {/* 로딩 스피너나 스플래시 화면 */}
-      </View>
-    );
-  }
-
-  // 로그인 화면
-  if (currentScreen === 'login') {
-    return (
-      <LoginScreen onLoginSuccess={handleLoginSuccess} />
-    );
-  }
-
-  // 온보딩 플로우
-  if (currentScreen === 'onboarding') {
-    return (
-      <CategorySelectionScreen onCategorySelect={handleCategorySelect} />
-    );
-  }
-
-  if (currentScreen === 'diagnosis') {
-    return (
-      <PatternDiagnosisScreen
-        category={onboardingData.category!}
-        onDiagnosisComplete={handleDiagnosisComplete}
-      />
-    );
-  }
-
-  if (currentScreen === 'result') {
-    return (
-      <DiagnosisResultScreen
-        userType={onboardingData.userType!}
-        onStartJourney={handleStartJourney}
-      />
-    );
-  }
-
-  // 메인 화면
-  if (currentScreen === 'main') {
-    return (
-      <DashboardScreen
-        onStartIntervention={handleStartIntervention}
-        onOpenSettings={handleOpenSettings}
-      />
-    );
-  }
-
-  // 일상 개입 화면
-  if (currentScreen === 'intervention' && interventionQuestId) {
-    return (
-      <DailyInterventionScreen
-        questId={interventionQuestId}
-        onComplete={handleInterventionComplete}
-        onSkip={handleInterventionSkip}
-      />
-    );
-  }
-
-  // 설정 화면
-  if (currentScreen === 'settings') {
-    return (
-      <SettingsScreen
-        onLogout={handleLogout}
-        onOpenFeedback={handleOpenFeedback}
-        onClose={handleCloseSettings}
-      />
-    );
-  }
-
-  // 피드백 화면
-  if (currentScreen === 'feedback') {
-    return (
-      <FeedbackScreen onClose={handleCloseFeedback} />
-    );
-  }
-
-  // 기본값 (혹시 모를 에러 상황)
-  return (
-    <LoginScreen onLoginSuccess={handleLoginSuccess} />
-  );
-};
+type Screen = 'onboarding' | 'dashboard' | 'cardSession' | 'valueArchive';
 
 const App: React.FC = () => {
-  useEffect(() => {
-    // 구글 로그인 초기화
-    AuthService.initialize().catch(error => {
-      console.error('Auth 서비스 초기화 실패:', error);
-    });
+  const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [selectedQuest, setSelectedQuest] = useState<any>(null);
 
-    // 알림 서비스 초기화
-    NotificationService.initialize().catch(error => {
-      console.error('알림 서비스 초기화 실패:', error);
-    });
+  useEffect(() => {
+    // 온보딩 완료 여부 확인 (나중에 AsyncStorage로 교체)
+    // setHasCompletedOnboarding(true);
+    // setCurrentScreen('dashboard');
   }, []);
+
+  const handleOnboardingComplete = (onboardingData: any) => {
+    console.log('온보딩 완료:', onboardingData);
+    setHasCompletedOnboarding(true);
+    setCurrentScreen('dashboard');
+  };
+
+  const handleStartCardSession = (quest: any) => {
+    setSelectedQuest(quest);
+    setCurrentScreen('cardSession');
+  };
+
+  const handleCardSessionComplete = (sessionData: any) => {
+    console.log('카드 세션 완료:', sessionData);
+    setCurrentScreen('dashboard');
+    setSelectedQuest(null);
+    
+    // 성공 메시지
+    Alert.alert(
+      '회로 개입 완료!',
+      `+2P 획득!\n총 소요시간: ${sessionData.responseTime}초`,
+      [{ text: '확인' }]
+    );
+  };
+
+  const handleCloseCardSession = () => {
+    setCurrentScreen('dashboard');
+    setSelectedQuest(null);
+  };
+
+  const handleOpenValueArchive = () => {
+    setCurrentScreen('valueArchive');
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentScreen('dashboard');
+  };
+
+  const renderCurrentScreen = () => {
+    switch (currentScreen) {
+      case 'onboarding':
+        return (
+          <OnboardingScreen />
+        );
+      
+      case 'dashboard':
+        return (
+          <DashboardScreen 
+            onStartSession={handleStartCardSession}
+            onOpenValueArchive={handleOpenValueArchive}
+          />
+        );
+      
+      case 'cardSession':
+        return selectedQuest ? (
+          <CardSessionScreen
+            quest={selectedQuest}
+            onComplete={handleCardSessionComplete}
+            onClose={handleCloseCardSession}
+          />
+        ) : null;
+      
+      case 'valueArchive':
+        return (
+          <ValueArchiveScreen />
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  // 개발용 네비게이션 바 (나중에 제거)
+  const renderDevNavigation = () => {
+    if (__DEV__) {
+      return (
+        <View style={styles.devNavigation}>
+          <TouchableOpacity 
+            style={styles.devButton} 
+            onPress={() => setCurrentScreen('onboarding')}
+          >
+            <Text style={styles.devButtonText}>온보딩</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.devButton} 
+            onPress={() => setCurrentScreen('dashboard')}
+          >
+            <Text style={styles.devButtonText}>대시보드</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.devButton} 
+            onPress={() => setCurrentScreen('valueArchive')}
+          >
+            <Text style={styles.devButtonText}>가치문장</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return null;
+  };
 
   return (
     <SafeAreaProvider>
-      <StatusBar
-        barStyle=\"dark-content\"
-        backgroundColor={colors.background}
-        translucent={false}
-      />
-      <AppProvider>
-        <AppNavigator />
-      </AppProvider>
+      <View style={styles.container}>
+        {renderCurrentScreen()}
+        {renderDevNavigation()}
+      </View>
     </SafeAreaProvider>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  devNavigation: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  devButton: {
+    flex: 1,
+    backgroundColor: '#3498db',
+    paddingVertical: 8,
+    marginHorizontal: 5,
+    borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: colors.background,
+  },
+  devButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 
