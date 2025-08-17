@@ -6,11 +6,25 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-const JWT_SECRET = 'your_jwt_secret_key';
-const GOOGLE_CLIENT_ID = '472208960312-865rbp1eo9vg76v2822cbecuc5pgtfml.apps.googleusercontent.com';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
-// Google OAuth 클라이언트 생성
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+// Google OAuth 클라이언트 ID들
+const GOOGLE_ANDROID_CLIENT_ID = process.env.GOOGLE_ANDROID_CLIENT_ID || '472208960312-d53rb3rujt4m166mdmilu6urf8ck9o1k.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID = process.env.GOOGLE_IOS_CLIENT_ID || '472208960312-cli1qspacvdhpdmlu1pim7k39h3flhe8.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID = process.env.GOOGLE_WEB_CLIENT_ID || '472208960312-865rbp1eo9vg76v2822cbecuc5pgtfml.apps.googleusercontent.com';
+
+// Google OAuth 클라이언트 생성 (Android용)
+const googleAndroidClient = new OAuth2Client(GOOGLE_ANDROID_CLIENT_ID);
+// Google OAuth 클라이언트 생성 (iOS용)
+const googleIOSClient = new OAuth2Client(GOOGLE_IOS_CLIENT_ID);
+// Google OAuth 클라이언트 생성 (Web용)
+const googleWebClient = new OAuth2Client(GOOGLE_WEB_CLIENT_ID);
+
+// 디버깅: 클라이언트 ID 확인
+console.log('🔧 설정된 클라이언트 ID들:');
+console.log('Android:', GOOGLE_ANDROID_CLIENT_ID);
+console.log('iOS:', GOOGLE_IOS_CLIENT_ID);
+console.log('Web:', GOOGLE_WEB_CLIENT_ID);
 
 // 회원가입
 router.post('/register', async (req, res) => {
@@ -51,24 +65,52 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 구글 로그인
+// 구글 로그인 (Android/iOS/Web 지원)
 router.post('/google', async (req, res) => {
   console.log('🔍 Google 로그인 요청 받음');
   console.log('📝 Request body:', req.body);
   
-  const { idToken } = req.body;
+  const { idToken, platform } = req.body;
   
   if (!idToken) {
     console.error('❌ ID Token이 없습니다');
     return res.status(400).json({ error: 'ID Token이 필요합니다.' });
   }
   
+  if (!platform) {
+    console.error('❌ Platform 정보가 없습니다');
+    return res.status(400).json({ error: 'Platform 정보가 필요합니다. (android/ios/web)' });
+  }
+  
   try {
-    console.log('🔑 Google ID 토큰 검증 시작...');
+    console.log(`🔑 Google ID 토큰 검증 시작... (Platform: ${platform})`);
+    
+    // 플랫폼별 Google 클라이언트 선택
+    let googleClient, clientId;
+    switch (platform.toLowerCase()) {
+      case 'android':
+        googleClient = googleAndroidClient;
+        clientId = GOOGLE_ANDROID_CLIENT_ID;
+        break;
+      case 'ios':
+        googleClient = googleIOSClient;
+        clientId = GOOGLE_IOS_CLIENT_ID;
+        break;
+      case 'web':
+        googleClient = googleWebClient;
+        clientId = GOOGLE_WEB_CLIENT_ID;
+        break;
+      default:
+        return res.status(400).json({ error: '지원하지 않는 플랫폼입니다. (android/ios/web)' });
+    }
+    
+    console.log(`🔑 선택된 클라이언트 ID: ${clientId}`);
+    console.log(`🔑 사용할 Google 클라이언트: ${googleClient.credentials.clientId || '설정되지 않음'}`);
+    
     // Google ID 토큰 검증
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: GOOGLE_CLIENT_ID,
+      audience: clientId,
     });
     
     const payload = ticket.getPayload();

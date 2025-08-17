@@ -217,11 +217,38 @@ npm run android
 npm start
 ```
 
-### 환경 변수
+### 환경 변수 설정
+
+1. **`.env` 파일 생성**: 프론트엔드 루트 디렉토리에 `.env` 파일 생성
+
 ```bash
-# .env 파일 생성
+# API 설정
 API_BASE_URL=http://localhost:3000/api
+
+# Google OAuth 설정
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+
+# 환경 설정
+NODE_ENV=development
+
+# 앱 설정
+APP_NAME=Pausemo
+APP_VERSION=1.0.0
 ```
+
+2. **Google OAuth 설정**: 백엔드와 동일한 클라이언트 ID 사용
+3. **iOS 전용 설정**: `GoogleService-Info.plist` 파일 생성
+4. **환경변수 로드**: `react-native-dotenv`를 통해 자동 로드
+
+### iOS 구글 로그인 설정
+
+1. **Google Cloud Console**에서 iOS 플랫폼 추가
+2. **Bundle ID** 입력 (예: `com.yourname.pausemo`)
+3. **GoogleService-Info.plist** 다운로드
+4. **iOS 프로젝트**에 파일 추가
+5. **Podfile**에 GoogleSignIn 의존성 추가
+6. **CocoaPods** 재설치: `cd ios && pod install`
 
 ## 📊 성공 지표
 

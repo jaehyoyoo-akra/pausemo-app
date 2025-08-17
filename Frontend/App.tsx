@@ -15,27 +15,63 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoginScreen from './src/screens/LoginScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import CardSessionScreen from './src/screens/CardSessionScreen';
 import ValueArchiveScreen from './src/screens/ValueArchiveScreen';
 
-type Screen = 'onboarding' | 'dashboard' | 'cardSession' | 'valueArchive';
+type Screen = 'login' | 'onboarding' | 'dashboard' | 'cardSession' | 'valueArchive';
 
 const App: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [selectedQuest, setSelectedQuest] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
-    // 온보딩 완료 여부 확인 (나중에 AsyncStorage로 교체)
-    // setHasCompletedOnboarding(true);
-    // setCurrentScreen('dashboard');
+    // 앱 시작 시 로그인 상태와 온보딩 완료 여부 확인
+    checkAuthStatus();
   }, []);
 
-  const handleOnboardingComplete = (onboardingData: any) => {
+  const checkAuthStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const onboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+      
+      if (token && userDataStr) {
+        setIsLoggedIn(true);
+        setUserData(JSON.parse(userDataStr));
+        
+        if (onboardingCompleted === 'true') {
+          setHasCompletedOnboarding(true);
+          setCurrentScreen('dashboard');
+        } else {
+          setCurrentScreen('onboarding');
+        }
+      } else {
+        setCurrentScreen('login');
+      }
+    } catch (error) {
+      console.error('Auth status check error:', error);
+      setCurrentScreen('login');
+    }
+  };
+
+  const handleLoginSuccess = (userData: any) => {
+    console.log('로그인 성공:', userData);
+    setIsLoggedIn(true);
+    setUserData(userData);
+    setCurrentScreen('onboarding');
+  };
+
+  const handleOnboardingComplete = async (onboardingData: any) => {
     console.log('온보딩 완료:', onboardingData);
     setHasCompletedOnboarding(true);
+    await AsyncStorage.setItem('onboardingCompleted', 'true');
     setCurrentScreen('dashboard');
   };
 
@@ -72,9 +108,14 @@ const App: React.FC = () => {
 
   const renderCurrentScreen = () => {
     switch (currentScreen) {
+      case 'login':
+        return (
+          <LoginScreen onLoginSuccess={handleLoginSuccess} />
+        );
+      
       case 'onboarding':
         return (
-          <OnboardingScreen />
+          <OnboardingScreen onComplete={handleOnboardingComplete} />
         );
       
       case 'dashboard':
@@ -109,6 +150,13 @@ const App: React.FC = () => {
     if (__DEV__) {
       return (
         <View style={styles.devNavigation}>
+          <TouchableOpacity 
+            style={styles.devButton} 
+            onPress={() => setCurrentScreen('login')}
+          >
+            <Text style={styles.devButtonText}>로그인</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity 
             style={styles.devButton} 
             onPress={() => setCurrentScreen('onboarding')}

@@ -1,5 +1,6 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// 환경변수 대신 하드코딩된 값 사용
 import {
   User,
   Quest,
@@ -12,7 +13,7 @@ import {
   UserType
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:3000/api'; // 개발 환경
+const API_BASE_URL_FALLBACK = 'http://localhost:3000'; // 개발 환경
 
 class ApiService {
   private token: string | null = null;
@@ -24,7 +25,7 @@ class ApiService {
   private setupInterceptors() {
     // 요청 인터셉터 - 토큰 추가
     axios.interceptors.request.use(
-      async (config: AxiosRequestConfig) => {
+      async (config: InternalAxiosRequestConfig) => {
         if (!this.token) {
           this.token = await AsyncStorage.getItem('authToken');
         }
@@ -61,30 +62,55 @@ class ApiService {
     await AsyncStorage.removeItem('authToken');
   }
 
+  // Google 로그인
+  async googleLogin(idToken: string, platform: string): Promise<any> {
+    try {
+      const response = await axios.post(`${API_BASE_URL_FALLBACK}/auth/google`, {
+        idToken,
+        platform
+      });
+      
+      if (response.data.token) {
+        await this.setToken(response.data.token);
+      }
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.error || 'Google 로그인에 실패했습니다.'
+      };
+    }
+  }
+
   // 사용자 관련
   async getCurrentUser(): Promise<User> {
-    const response = await axios.get(`${API_BASE_URL}/auth/me`);
+    const response = await axios.get(`${API_BASE_URL_FALLBACK}/auth/me`);
     return response.data;
   }
 
   async updateUserProfile(updates: Partial<User>): Promise<User> {
-    const response = await axios.patch(`${API_BASE_URL}/auth/profile`, updates);
+    const response = await axios.patch(`${API_BASE_URL_FALLBACK}/auth/profile`, updates);
     return response.data;
   }
 
   // 퀘스트 관련
   async getActiveQuests(): Promise<Quest[]> {
-    const response = await axios.get(`${API_BASE_URL}/quests`);
+    const response = await axios.get(`${API_BASE_URL_FALLBACK}/quests`);
     return response.data;
   }
 
   async createQuest(category: QuestCategory, name: string): Promise<Quest> {
-    const response = await axios.post(`${API_BASE_URL}/quests`, { category, name });
+    const response = await axios.post(`${API_BASE_URL_FALLBACK}/quests`, { category, name });
     return response.data;
   }
 
   async updateQuestProgress(questId: string, progress: number, todayResponse: boolean): Promise<Quest> {
-    const response = await axios.patch(`${API_BASE_URL}/quests/${questId}/progress`, {
+    const response = await axios.patch(`${API_BASE_URL_FALLBACK}/quests/${questId}/progress`, {
       progress,
       todayResponse
     });
@@ -92,13 +118,13 @@ class ApiService {
   }
 
   async completeQuest(questId: string): Promise<Quest> {
-    const response = await axios.patch(`${API_BASE_URL}/quests/${questId}/complete`);
+    const response = await axios.patch(`${API_BASE_URL_FALLBACK}/quests/${questId}/complete`);
     return response.data;
   }
 
   // 카드 관련
   async getCardsForQuest(questId: string, type?: CardType, difficulty?: number): Promise<Card[]> {
-    let url = `${API_BASE_URL}/cards/${questId}`;
+    let url = `${API_BASE_URL_FALLBACK}/cards/${questId}`;
     const params = new URLSearchParams();
     
     if (type) params.append('type', type);
@@ -113,7 +139,7 @@ class ApiService {
   }
 
   async respondToCard(cardId: string, answer: 'Y' | 'N', responseTime: number, context?: any): Promise<any> {
-    const response = await axios.post(`${API_BASE_URL}/cards/${cardId}/respond`, {
+    const response = await axios.post(`${API_BASE_URL_FALLBACK}/cards/${cardId}/respond`, {
       answer,
       responseTime,
       context
@@ -122,7 +148,7 @@ class ApiService {
   }
 
   async updateCardEfficiency(cardId: string, responseRate: number, completionRate: number): Promise<Card> {
-    const response = await axios.patch(`${API_BASE_URL}/cards/${cardId}/efficiency`, {
+    const response = await axios.patch(`${API_BASE_URL_FALLBACK}/cards/${cardId}/efficiency`, {
       responseRate,
       completionRate
     });
@@ -131,7 +157,7 @@ class ApiService {
 
   // 응답 관련
   async getResponses(questId?: string, startDate?: string, endDate?: string): Promise<Response[]> {
-    let url = `${API_BASE_URL}/responses`;
+    let url = `${API_BASE_URL_FALLBACK}/responses`;
     const params = new URLSearchParams();
     
     if (questId) params.append('questId', questId);
@@ -148,19 +174,19 @@ class ApiService {
 
   // 피드백 관련
   async submitFeedback(title: string, content: string): Promise<Feedback> {
-    const response = await axios.post(`${API_BASE_URL}/feedback`, { title, content });
+    const response = await axios.post(`${API_BASE_URL_FALLBACK}/feedback`, { title, content });
     return response.data;
   }
 
   // 온보딩 관련
   async submitOnboarding(data: OnboardingData): Promise<User> {
-    const response = await axios.post(`${API_BASE_URL}/onboarding`, data);
+    const response = await axios.post(`${API_BASE_URL_FALLBACK}/onboarding`, data);
     return response.data;
   }
 
   // 통계 관련
   async getUserStats(startDate?: string, endDate?: string): Promise<any> {
-    let url = `${API_BASE_URL}/stats`;
+    let url = `${API_BASE_URL_FALLBACK}/stats`;
     const params = new URLSearchParams();
     
     if (startDate) params.append('startDate', startDate);
@@ -176,7 +202,7 @@ class ApiService {
 
   // AI 서비스 관련
   async getPersonalizedCards(questId: string, userType: UserType[]): Promise<Card[]> {
-    const response = await axios.post(`${API_BASE_URL}/ai/personalize`, {
+    const response = await axios.post(`${API_BASE_URL_FALLBACK}/ai/personalize`, {
       questId,
       userType
     });
@@ -184,7 +210,7 @@ class ApiService {
   }
 
   async analyzePattern(responses: Response[]): Promise<any> {
-    const response = await axios.post(`${API_BASE_URL}/ai/analyze`, { responses });
+    const response = await axios.post(`${API_BASE_URL_FALLBACK}/ai/analyze`, { responses });
     return response.data;
   }
 }

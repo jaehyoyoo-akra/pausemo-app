@@ -13,7 +13,11 @@ import { QuestCategory, UserType, OnboardingData } from '../types';
 
 const { width } = Dimensions.get('window');
 
-const OnboardingScreen: React.FC = () => {
+interface OnboardingScreenProps {
+  onComplete: (onboardingData: OnboardingData) => void;
+}
+
+const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState<QuestCategory[]>([]);
   const [selectedQuests, setSelectedQuests] = useState<string[]>([]);
@@ -179,8 +183,8 @@ const OnboardingScreen: React.FC = () => {
       // TODO: API 호출하여 온보딩 데이터 저장
       console.log('온보딩 완료:', onboardingData);
       
-      // 메인 화면으로 이동
-      // navigation.replace('Main');
+      // 부모 컴포넌트에 온보딩 완료 알림
+      onComplete(onboardingData);
     } catch (error) {
       Alert.alert('오류', '온보딩 저장에 실패했습니다.');
     }

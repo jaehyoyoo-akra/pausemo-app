@@ -5,8 +5,15 @@ require('dotenv').config();
 
 const app = express();
 
+// CORS 설정
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:3000', 'http://localhost:8081'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // 미들웨어
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // MongoDB 연결
