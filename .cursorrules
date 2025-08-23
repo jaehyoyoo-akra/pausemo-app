@@ -1,0 +1,110 @@
+# .cursorrules
+# React Native + Expo Development Rules
+
+Main:
+Always assume that npm run ios is already running in the background with the iOS emulator for real-time verification. Never run npm run or npm run ios yourself.
+
+rules:
+  - summary: Always build with React Native + Expo only (no external DB like Supabase or SQLite).
+  - summary: Use TypeScript in strict mode.
+  - summary: Use only functional components with React Hooks.
+  
+  # Architecture
+  - summary: Organize project with expo-router.
+  - summary: Recommended directory structure:
+```
+src/
+ ├── components/      # Reusable UI components (Button, Card, Modal, etc.)
+ ├── screens/         # Actual screen units (LoginScreen, HomeScreen, etc.)
+ ├── hooks/           # Custom hooks (useAuth, useFetch, etc.)
+ ├── contexts/        # React Context API (AuthContext, etc.)
+ ├── services/        # API calls, external service logic (authService, apiClient, etc.)
+ ├── utils/           # Common functions, constants
+ ├── constants/       # App-wide Tailwind-based colors, styles, themes, fonts configuration
+ ├── navigation/      # React Navigation related stack/tab settings
+ ├── assets/          # Images, fonts, icons
+ └── App.tsx
+```
+  
+  # State Management
+  - summary: Prefer useState for local state.
+  - summary: Use Context + useReducer for global state.
+  - summary: Avoid Redux, Zustand, or other state libraries unless explicitly requested.
+  
+  # UI
+  - summary: Use Expo built-in components for layout (View, Text, ScrollView).
+  - summary: Use NativeWind (Tailwind CSS for RN) for styling if possible.
+  - summary: Alternative UI libs: React Native Paper or Tamagui (only if asked).
+  - summary: Support dark mode with useColorScheme.
+  - summary: Always apply accessibility props (accessible, accessibilityRole).
+  
+  # Navigation
+  - summary: Use expo-router for navigation.
+  - summary: Keep navigation simple (Stack, Tabs, Drawer).
+  
+  # Safe Area
+  - summary: Wrap pages with SafeAreaProvider and SafeAreaView.
+  - summary: Use SafeAreaScrollView for scrollable pages.
+  
+  # Performance
+  - summary: Optimize renders with useMemo and useCallback.
+  - summary: Use SplashScreen or AppLoading from Expo for startup UX.
+  
+  # Error Handling
+  - summary: Wrap risky code with try/catch and return early on failure.
+  - summary: Provide fallback UI components for error states.
+  
+  # Testing
+  - summary: Write unit tests with Jest + React Native Testing Library.
+  - summary: Use snapshot testing for UI.
+  
+  # Security
+  - summary: Store sensitive data only with expo-secure-store.
+  - summary: Always use HTTPS for APIs.
+  
+  # i18n
+  - summary: Use expo-localization for internationalization.
+  - summary: Support RTL and scalable fonts.
+  
+  # Component Management
+  - summary: Utilize existing implemented components as much as possible, but create new components when necessary.
+  - summary: Components should not be screen-specific but have versatility to be used across multiple screens.
+  - summary: For example, if shadow is needed, actively utilize components/ShadowWrapper.tsx.
+  - summary: When importing and using components, style change requests should be applied independently through styles defined in individual screens.
+  - summary: Be cautious as modifying the component itself affects all code, unless there are specific requirements.
+  
+  # Constants Management
+  - summary: The constants/ folder contains app-wide Tailwind-based colors, styles, themes, fonts and overall app aesthetic configuration.
+  - summary: When creating new screens, actively reference and utilize values from constants/ folder.
+  - summary: Add new constants only if they have versatility and can be reused across multiple screens.
+  - summary: Minor adjustments should be handled through individual screen styles, similar to components approach.
+  - summary: Maintain consistency by using predefined constants rather than hardcoded values throughout the app.
+  
+  # TypeScript Validation
+  - summary: Actively utilize "npx tsc --noEmit" to check compilation errors after every modification.
+  - summary: Resolve compilation errors by yourself if they occur.
+  
+  # Restrictions
+  - summary: You MUST NOT install new modules or change existing package versions under any circumstances.
+  - summary: You MUST NOT delete or remove any existing packages.
+  - summary: If a new module installation is absolutely required, only mention it and say: "Please contact 유재효." — do not perform the installation.
+  - summary: Only use the tools, libraries, and dependencies that are already available in the project.
+  - summary: Do not rebuild it more than once. Continue using the same build.
+  - summary: Once the Expo app has been built, do not rebuild it more than once. Continue using the same build.
+  - summary: Only make code changes that can be seen in real time on the frontend.
+  - summary: Only modify code directly related to a feature request.
+  - summary: Preserve existing folder structure.
+  - summary: Do not introduce experimental code unless requested.
+
+references:
+- React Native Docs: @web https://reactnative.dev/docs/getting-started
+- Expo + TypeScript: @web https://docs.expo.dev/guides/typescript/
+- Expo Security Guide: @web https://docs.expo.dev/guides/security/
+- Expo OTA Updates: @web Updates - Expo Documentation
+- React Navigation: @web https://reactnative.dev/docs/getting-started
+- React Query (TanStack): @web https://tanstack.com/query/latest/docs/react/overview
+- React Hook Form: @web https://react-hook-form.com/get-started
+- Zod: @web https://zod.dev/
+- NativeWind: @web https://www.nativewind.dev/
+- React Native Paper: @web https://reactnativepaper.com/
+- React to React Native Code: @web https://codezup.com/convert-react-app-to-react-native/
